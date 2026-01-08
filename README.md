@@ -37,7 +37,3 @@ pip install -r requirements_locked.txt
 ## Notebooks
 - `notebooks/1.0 Exploration des donn?es.ipynb` : EDA global + focus 2022
 
-## Equipe
-- Timothee Monod - Chef de projet / Data Product Owner
-- [Nom 2] - Data Scientist (EDA & FE)
-- [Nom 3] - Data Scientist (ML & Streamlit)
