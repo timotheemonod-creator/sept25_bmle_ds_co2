@@ -13,7 +13,7 @@ from joblib import load as joblib_load
 
 
 st.set_page_config(
-    page_title="Projet CO2 - Presentation",
+    page_title="Projet CO2 - Présentation",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -93,6 +93,54 @@ PROJECT_STATS = {
     "cols_kept": 21,
 }
 
+ASSET_DIR = Path("assets")
+
+
+def asset_path(stem: str) -> Path:
+    for ext in (".png", ".jpg", ".jpeg"):
+        candidate = ASSET_DIR / f"{stem}{ext}"
+        if candidate.exists():
+            return candidate
+    return ASSET_DIR / f"{stem}.png"
+
+
+INTRO_IMAGES = [
+    asset_path("intro_green_car"),
+    asset_path("intro_traffic"),
+]
+STRUCTURE_IMAGE = asset_path("columns_struct")
+SHAP_PANELS = [
+    {
+        "title": "SHAP summary (dot plot)",
+        "path": asset_path("shap_summary"),
+        "desc": (
+            "Vue globale de l'impact des variables : la couleur indique la valeur "
+            "de la variable et la position l'effet sur la prédiction."
+        ),
+    },
+    {
+        "title": "SHAP bar (importance globale)",
+        "path": asset_path("shap_bar"),
+        "desc": "Classement global des variables les plus influentes sur la décision.",
+    },
+    {
+        "title": "SHAP dependence",
+        "path": asset_path("shap_dependence"),
+        "desc": (
+            "Relation locale entre une variable clé (ex. masse ou puissance) et "
+            "son impact sur la sortie."
+        ),
+    },
+    {
+        "title": "SHAP force / decision",
+        "path": asset_path("shap_force"),
+        "desc": (
+            "Lecture instance par instance : contribution positive/négative des "
+            "variables à la classe prédite."
+        ),
+    },
+]
+
 MISSINGNESS = pd.DataFrame(
     {
         "indicator": ["Ewltp (g/km)", "Enedc (g/km)"],
@@ -100,47 +148,202 @@ MISSINGNESS = pd.DataFrame(
     }
 )
 
-REG_METRICS = pd.DataFrame(
-    {
-        "model": ["Random Forest", "Linear Regression"],
-        "r2_test": [0.9938, 0.9358],
-        "rmse": [5.41, 17.45],
-        "mae": [2.44, 12.86],
-    }
+REG_RESULTS_FULL = pd.DataFrame(
+    [
+        {
+            "Modèle": "Random Forest",
+            "R² CV": 0.9949226,
+            "R² train": 0.998012,
+            "R² test": 0.993935,
+            "MAE": 2.426078,
+            "RMSE": 5.362198,
+        },
+        {
+            "Modèle": "KNN",
+            "R² CV": 0.9898879,
+            "R² train": 0.994041,
+            "R² test": 0.989878,
+            "MAE": 3.294370,
+            "RMSE": 6.927429,
+        },
+        {
+            "Modèle": "Ridge",
+            "R² CV": 0.9344312,
+            "R² train": 0.934468,
+            "R² test": 0.935798,
+            "MAE": 12.855034,
+            "RMSE": 17.446780,
+        },
+        {
+            "Modèle": "Linear Regression",
+            "R² CV": -2.0018e21,
+            "R² train": 0.934468,
+            "R² test": 0.935797,
+            "MAE": 12.855326,
+            "RMSE": 17.446926,
+        },
+        {
+            "Modèle": "Lasso",
+            "R² CV": 0.9266005,
+            "R² train": 0.926648,
+            "R² test": 0.927446,
+            "MAE": 13.687712,
+            "RMSE": 18.546881,
+        },
+        {
+            "Modèle": "Elastic Net",
+            "R² CV": 0.8777564,
+            "R² train": 0.877803,
+            "R² test": 0.877820,
+            "MAE": 17.637387,
+            "RMSE": 24.068001,
+        },
+    ]
+)
+
+REG_RESULTS_REDUCED = pd.DataFrame(
+    [
+        {
+            "Modèle": "Random Forest",
+            "R² CV": 0.994104,
+            "R² train": 0.997681,
+            "R² test": 0.992326,
+            "MAE": 2.524182,
+            "RMSE": 6.031930,
+        },
+        {
+            "Modèle": "KNN",
+            "R² CV": 0.986014,
+            "R² train": 0.992072,
+            "R² test": 0.985833,
+            "MAE": 3.320510,
+            "RMSE": 8.195481,
+        },
+        {
+            "Modèle": "Linear Regression",
+            "R² CV": 0.792661,
+            "R² train": 0.792732,
+            "R² test": 0.792315,
+            "MAE": 22.646579,
+            "RMSE": 31.379221,
+        },
+        {
+            "Modèle": "Ridge",
+            "R² CV": 0.792661,
+            "R² train": 0.792732,
+            "R² test": 0.792315,
+            "MAE": 22.646586,
+            "RMSE": 31.379221,
+        },
+        {
+            "Modèle": "Lasso",
+            "R² CV": 0.785689,
+            "R² train": 0.785729,
+            "R² test": 0.785227,
+            "MAE": 23.006620,
+            "RMSE": 31.910176,
+        },
+        {
+            "Modèle": "Elastic Net",
+            "R² CV": 0.722661,
+            "R² train": 0.722703,
+            "R² test": 0.722426,
+            "MAE": 27.506783,
+            "RMSE": 36.276787,
+        },
+    ]
 )
 
 CLF_METRICS = pd.DataFrame(
     {
         "model": [
-            "XGBoost (tuned)",
+            "XGBoost",
             "Bagging",
             "Random Forest",
             "Logistic Regression",
         ],
-        "accuracy_test": [0.93, 0.9217, 0.9213, 0.7629],
-        "f1_weighted": [0.9304, 0.9288, 0.9288, 0.7696],
+        "accuracy_test": [0.92, 0.9217, 0.9213, 0.7629],
+        "f1_weighted": [0.92, 0.9288, 0.9288, 0.7696],
     }
 )
 
-CLASS_THRESHOLDS = [
-    ("0", "Zero emission", 0),
-    ("1", "A", 100),
-    ("2", "B", 120),
-    ("3", "C", 140),
-    ("4", "D", 160),
-    ("5", "E", 200),
-    ("6", "F", 250),
-    ("7", "G", 9999),
+XGB_OPTUNA_SCORES = pd.DataFrame(
+    {
+        "Version": ["Avant optimisation", "Après Optuna + seuils"],
+        "Exactitude": [0.92, 0.93],
+        "F1 pondéré": [0.92, 0.93],
+    }
+)
+
+CLASS_BINS = [
+    {"class": "0", "label": "Zéro émission", "min": 0, "max": 0, "example": "Tesla Model 3"},
+    {"class": "1", "label": "A (≤100)", "min": 1, "max": 100, "example": "Honda hybride"},
+    {"class": "2", "label": "B (≤120)", "min": 101, "max": 120, "example": "Peugeot 208 essence"},
+    {"class": "3", "label": "C (≤140)", "min": 121, "max": 140, "example": "Renault Clio diesel"},
+    {"class": "4", "label": "D (≤160)", "min": 141, "max": 160, "example": "VW Golf GTI"},
+    {"class": "5", "label": "E (≤200)", "min": 161, "max": 200, "example": "SUV essence (3008)"},
+    {"class": "6", "label": "F (≤250)", "min": 201, "max": 250, "example": "Camping-car / pickup"},
+    {"class": "7", "label": "G (>250)", "min": 251, "max": 9999, "example": "Voiture de sport"},
 ]
+
+STRUCTURAL_COLUMNS = [
+    "Country",
+    "Man",
+    "Mk",
+    "Va",
+    "Ve",
+    "Cn",
+    "Cr",
+    "m (kg)",
+    "W (mm)",
+    "At2 (mm)",
+    "cylindre_du_moteur_cm3",
+    "puissance_du_moteur_kw",
+    "IT",
+]
+
+EXCLUDED_COLUMNS = [
+    "Fuel consumption (l/100km)",
+    "Electric range (km)",
+    "z (Wh/km)",
+    "Enedc (g/km)",
+    "Ernedc (g/km)",
+    "Erwltp (g/km)",
+]
+
+PREPROCESS_NUMERIC = [
+    "Imputation par médiane ou moyenne groupée (ex. par constructeur).",
+    "Création d'indicateurs de valeurs manquantes pour certaines variables.",
+    "Standardisation (StandardScaler) après split train/test.",
+]
+
+PREPROCESS_CATEGORICAL = [
+    "Nettoyage des faux NA et harmonisation des libellés (constructeurs, modèles).",
+    "Imputation par mode groupé (ex. Man par Mk ou Cn).",
+    "Encodage One-Hot (drop='first') sur catégories à faible cardinalité.",
+]
+
+CONFUSION_MATRIX_OPT = np.array(
+    [
+        [11665, 0, 0, 0, 0, 0, 0, 0],
+        [0, 10055, 35, 4, 0, 2, 2, 0],
+        [0, 19, 5821, 1036, 14, 0, 1, 0],
+        [0, 2, 934, 23382, 1219, 4, 0, 0],
+        [0, 3, 2, 1568, 18130, 742, 3, 3],
+        [0, 8, 1, 12, 1284, 16857, 402, 28],
+        [0, 4, 2, 1, 9, 506, 9185, 104],
+        [0, 6, 0, 0, 0, 5, 143, 3004],
+    ]
+)
 
 GAIN_IMPORTANCE = pd.DataFrame(
     {
         "feature": [
-            "Fuel type / energy mode",
-            "Hybrid tech flags",
-            "Mass (kg)",
-            "Engine displacement (cm3)",
-            "Power (kW)",
+            "Type d'énergie / carburant",
+            "Hybridation",
+            "Masse (kg)",
+            "Cylindrée (cm3)",
+            "Puissance (kW)",
             "Dimensions (W, At1, At2)",
         ],
         "importance": [1.0, 0.85, 0.55, 0.48, 0.44, 0.31],
@@ -150,11 +353,11 @@ GAIN_IMPORTANCE = pd.DataFrame(
 PERM_IMPORTANCE = pd.DataFrame(
     {
         "feature": [
-            "Mass (kg)",
-            "Engine displacement (cm3)",
-            "Power (kW)",
-            "Fuel type / energy mode",
-            "Hybrid tech flags",
+            "Masse (kg)",
+            "Cylindrée (cm3)",
+            "Puissance (kW)",
+            "Type d'énergie / carburant",
+            "Hybridation",
             "Dimensions (W, At1, At2)",
         ],
         "importance": [1.0, 0.86, 0.78, 0.52, 0.41, 0.29],
@@ -165,6 +368,8 @@ PERM_IMPORTANCE = pd.DataFrame(
 @st.cache_data
 def load_data_dictionary() -> pd.DataFrame:
     path = Path("references/Dictionnaires_de_donnees.xlsx")
+    if not path.exists():
+        return pd.DataFrame(columns=["column", "drop_reason", "na_pct"])
     df_raw = pd.read_excel(path, sheet_name="Feuil1", header=None)
     header_idx = 1
     header = df_raw.iloc[header_idx].tolist()
@@ -186,31 +391,20 @@ def load_data_dictionary() -> pd.DataFrame:
 
 
 def classify_co2(value: float) -> str:
-    if value == 0:
-        return "0"
-    if value <= 100:
-        return "1"
-    if value <= 120:
-        return "2"
-    if value <= 140:
-        return "3"
-    if value <= 160:
-        return "4"
-    if value <= 200:
-        return "5"
-    if value <= 250:
-        return "6"
+    for row in CLASS_BINS:
+        if row["min"] <= value <= row["max"]:
+            return row["class"]
     return "7"
 
 
 def heuristic_co2_estimate(payload: dict) -> float:
     # Simple proxy model to keep the demo interactive when no trained model is available.
-    mass = payload["mass_kg"]
-    power = payload["power_kw"]
-    disp = payload["disp_cm3"]
-    width = payload["width_mm"]
-    track = (payload["track_front_mm"] + payload["track_rear_mm"]) / 2
-    fuel = payload["fuel_type"]
+    mass = payload["m (kg)"]
+    power = payload["puissance_du_moteur_kw"]
+    disp = payload["cylindre_du_moteur_cm3"]
+    width = payload["W (mm)"]
+    track = (payload["At1 (mm)"] + payload["At2 (mm)"]) / 2
+    fuel = payload["Ft"]
 
     base = 0.03 * mass + 0.09 * power + 0.015 * disp
     base += 0.01 * max(width - 1650, 0)
@@ -243,6 +437,12 @@ def load_model(uploaded: io.BytesIO | None):
     return None, None
 
 
+def show_image(path: Path, caption: str | None = None) -> None:
+    if not path.exists():
+        return
+    st.image(str(path), caption=caption, width=700)
+
+
 def section_header(title: str, subtitle: str | None = None) -> None:
     st.markdown(f"<div class='slide-title'>{title}</div>", unsafe_allow_html=True)
     if subtitle:
@@ -268,7 +468,7 @@ def chart_volumetry():
     fig.update_layout(
         height=360,
         showlegend=False,
-        yaxis_title="Rows",
+        yaxis_title="Lignes",
         xaxis_title="",
         margin=dict(l=10, r=10, t=20, b=10),
     )
@@ -289,7 +489,7 @@ def chart_missingness():
         height=360,
         showlegend=False,
         yaxis_tickformat=".0%",
-        yaxis_title="Missing rate",
+        yaxis_title="Taux de NA",
         xaxis_title="",
         margin=dict(l=10, r=10, t=20, b=10),
     )
@@ -316,20 +516,21 @@ def chart_column_split():
 
 
 def chart_regression():
+    df = REG_RESULTS_FULL.sort_values("R² test", ascending=False)
     fig = px.bar(
-        REG_METRICS,
-        x="model",
-        y="r2_test",
-        color="model",
+        df,
+        x="Modèle",
+        y="R² test",
+        color="Modèle",
         color_discrete_sequence=["#0f4c5c", "#e07a5f"],
-        text="r2_test",
+        text="R² test",
     )
     fig.update_traces(texttemplate="%{text:.3f}", textposition="outside")
     fig.update_layout(
         height=320,
         showlegend=False,
         yaxis_range=[0.8, 1.02],
-        yaxis_title="R2 (test)",
+        yaxis_title="R² (test)",
         xaxis_title="",
         margin=dict(l=10, r=10, t=20, b=10),
     )
@@ -337,13 +538,14 @@ def chart_regression():
 
 
 def chart_regression_rmse():
+    df = REG_RESULTS_FULL.sort_values("RMSE", ascending=True)
     fig = px.bar(
-        REG_METRICS,
-        x="model",
-        y="rmse",
-        color="model",
+        df,
+        x="Modèle",
+        y="RMSE",
+        color="Modèle",
         color_discrete_sequence=["#0f4c5c", "#e07a5f"],
-        text="rmse",
+        text="RMSE",
     )
     fig.update_traces(texttemplate="%{text:.2f}", textposition="outside")
     fig.update_layout(
@@ -362,7 +564,7 @@ def chart_classification():
         go.Bar(
             x=CLF_METRICS["model"],
             y=CLF_METRICS["f1_weighted"],
-            name="F1 weighted",
+            name="F1 pondéré",
             marker_color="#0f4c5c",
             text=[f"{v:.3f}" for v in CLF_METRICS["f1_weighted"]],
             textposition="outside",
@@ -372,7 +574,7 @@ def chart_classification():
         go.Bar(
             x=CLF_METRICS["model"],
             y=CLF_METRICS["accuracy_test"],
-            name="Accuracy",
+            name="Exactitude",
             marker_color="#e07a5f",
             text=[f"{v:.3f}" for v in CLF_METRICS["accuracy_test"]],
             textposition="outside",
@@ -390,20 +592,77 @@ def chart_classification():
 
 
 def chart_thresholds():
-    df = pd.DataFrame(CLASS_THRESHOLDS, columns=["class", "label", "upper"])
-    fig = px.line(
-        df,
-        x="class",
-        y="upper",
-        markers=True,
-        text="upper",
-        color_discrete_sequence=["#0f4c5c"],
+    df = pd.DataFrame(CLASS_BINS)
+    df["display_min"] = df["min"].clip(upper=300)
+    df["display_max"] = df["max"].clip(upper=300)
+    fig = go.Figure(
+        go.Bar(
+            x=df["display_max"],
+            y=df["class"],
+            base=df["display_min"],
+            orientation="h",
+            marker_color="#0f4c5c",
+            text=[f"{row['min']}–{row['max']}" for _, row in df.iterrows()],
+            textposition="outside",
+        )
     )
-    fig.update_traces(texttemplate="%{text}", textposition="top center")
     fig.update_layout(
         height=320,
-        yaxis_title="Upper threshold (g/km)",
-        xaxis_title="Class (0-7)",
+        yaxis_title="Classe (0–7)",
+        xaxis_title="Seuils CO2 (g/km)",
+        margin=dict(l=10, r=10, t=20, b=10),
+    )
+    return fig
+
+
+def chart_xgb_scores():
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=XGB_OPTUNA_SCORES["Version"],
+            y=XGB_OPTUNA_SCORES["F1 pondéré"],
+            name="F1 pondéré",
+            marker_color="#0f4c5c",
+            text=[f"{v:.2f}" for v in XGB_OPTUNA_SCORES["F1 pondéré"]],
+            textposition="outside",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            x=XGB_OPTUNA_SCORES["Version"],
+            y=XGB_OPTUNA_SCORES["Exactitude"],
+            name="Exactitude",
+            marker_color="#e07a5f",
+            text=[f"{v:.2f}" for v in XGB_OPTUNA_SCORES["Exactitude"]],
+            textposition="outside",
+        )
+    )
+    fig.update_layout(
+        height=320,
+        barmode="group",
+        yaxis_range=[0.6, 1.02],
+        yaxis_title="Score (test)",
+        xaxis_title="",
+        margin=dict(l=10, r=10, t=20, b=10),
+    )
+    return fig
+
+
+def chart_confusion_matrix():
+    labels = [row["class"] for row in CLASS_BINS]
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=CONFUSION_MATRIX_OPT,
+            x=labels,
+            y=labels,
+            colorscale="Blues",
+            showscale=True,
+        )
+    )
+    fig.update_layout(
+        height=420,
+        xaxis_title="Prédit",
+        yaxis_title="Réel",
         margin=dict(l=10, r=10, t=20, b=10),
     )
     return fig
@@ -421,7 +680,7 @@ def chart_importance(df: pd.DataFrame, title: str):
     fig.update_layout(
         height=360,
         showlegend=False,
-        xaxis_title="Relative importance (normalized)",
+        xaxis_title="Importance relative (normalisée)",
         yaxis_title="",
         margin=dict(l=10, r=10, t=30, b=10),
         title=title,
@@ -431,23 +690,22 @@ def chart_importance(df: pd.DataFrame, title: str):
 
 
 SLIDES = [
-    ("Intro", "intro"),
-    ("1 - Contexte & donnees", "data"),
-    ("2 - Qualite & couverture", "quality"),
-    ("3 - Choix metodologiques", "pipeline"),
-    ("4 - Regression (Rendu 2)", "regression"),
-    ("5 - Classification & seuils", "classification"),
-    ("6 - XGBoost & Optuna", "xgb"),
-    ("7 - Explicabilite (SHAP)", "shap"),
-    ("Demo live", "demo"),
+    {"label": "Introduction", "id": "intro"},
+    {"label": "Contexte & qualité des données", "id": "context"},
+    {"label": "Pré-processing & sélection", "id": "preprocess"},
+    {"label": "Régression", "id": "regression"},
+    {"label": "Classification & optimisation", "id": "classification"},
+    {"label": "Explicabilité (SHAP)", "id": "shap"},
+    {"label": "Démo live", "id": "demo"},
 ]
 
 
 with st.sidebar:
     st.markdown("### Navigation")
-    slide_labels = [s[0] for s in SLIDES]
-    slide_key = st.radio("Slide", slide_labels, index=0, label_visibility="collapsed")
-    slide_idx = slide_labels.index(slide_key)
+    slide_labels = [s["label"] for s in SLIDES]
+    slide_label = st.radio("Slide", slide_labels, index=0, label_visibility="collapsed")
+    slide_id = next(s["id"] for s in SLIDES if s["label"] == slide_label)
+    slide_idx = slide_labels.index(slide_label)
     st.progress((slide_idx + 1) / len(SLIDES))
     st.markdown(
         f"<div class='muted'>Slide {slide_idx + 1} / {len(SLIDES)}</div>",
@@ -455,205 +713,205 @@ with st.sidebar:
     )
     st.markdown("---")
     st.markdown("### Timing guide")
-    st.markdown("- Intro: 2 min")
-    st.markdown("- Slides 1-7: ~2 min chacune")
-    st.markdown("- Demo live: 5 min")
+    st.markdown("- Introduction : 2 min")
+    st.markdown("- Contexte & qualité : ~3 min")
+    st.markdown("- Pré-processing : ~3 min")
+    st.markdown("- Régression : ~2 min")
+    st.markdown("- Classification & optimisation : ~3 min")
+    st.markdown("- Explicabilité (SHAP) : ~2 min")
+    st.markdown("- Démo live : 5 min")
 
 
-if slide_key == "Intro":
-    section_header("Projet CO2", "Presentation synthese en 20 minutes")
-    col_a, col_b = st.columns([1.3, 1])
+if slide_id == "intro":
+    section_header("Introduction", "Pourquoi suivre les émissions de CO2 des véhicules particuliers")
+    col_a, col_b = st.columns([1.2, 1])
     with col_a:
         st.markdown(
             """
 <div class="card">
-<div class="metric-big">Pourquoi ce projet ?</div>
+<div class="metric-big">Intérêt scientifique & métier</div>
 <div class="muted">
-Anticiper la trajectoire CO2 des vehicules particuliers en Europe pour
-outiller la regulation, les constructeurs et les acteurs publics.
+Les véhicules particuliers représentent une part majeure des émissions de CO2 du transport.
+Comprendre les déterminants techniques permet d'objectiver les trajectoires de réduction,
+d'éclairer les politiques publiques et d'aider les constructeurs à concevoir des modèles plus sobres.
 </div>
 <br/>
-<div class="pill">Rendu 1: exploration + preprocessing</div>
-<div class="pill">Rendu 2: modelisation + explicabilite</div>
+<div class="metric-big">Objectifs</div>
+<div class="muted">
+<ul>
+  <li>Identifier les véhicules les plus polluants.</li>
+  <li>Comprendre les caractéristiques techniques qui influencent ces émissions.</li>
+  <li>Prédire l'émission CO2 à partir des caractéristiques physiques.</li>
+</ul>
+</div>
 </div>
 """,
             unsafe_allow_html=True,
         )
     with col_b:
-        st.markdown(
-            """
-<div class="card">
-<div class="metric-big">Objectif</div>
-<div class="muted">
-1) Comprendre les drivers CO2.
-<br/>2) Predire une valeur continue (regression).
-<br/>3) Classer en 8 niveaux interpretable (0-7).
-</div>
-</div>
-""",
-            unsafe_allow_html=True,
-        )
+        show_image(INTRO_IMAGES[0], "Contexte : transition et sobriété")
+        show_image(INTRO_IMAGES[1], "Pression urbaine et pollution locale")
 
 
-elif slide_key == "1 - Contexte & donnees":
-    section_header("Donnees & volumetrie", "EEA CO2 cars dataset 2010-2024")
-    col_a, col_b = st.columns([1.2, 1])
+elif slide_id == "context":
+    section_header("Contexte & qualité des données", "EEA CO2 cars dataset 2010–2024")
+    col_a, col_b = st.columns(2)
     with col_a:
         st.plotly_chart(chart_volumetry(), use_container_width=True)
     with col_b:
-        st.markdown(
-            """
+        st.plotly_chart(chart_missingness(), use_container_width=True)
+    st.markdown(
+        """
 <div class="card">
 <div class="metric-big">>91M</div>
-<div class="muted">Lignes sur 2010-2024, 40 colonnes</div>
+<div class="muted">Lignes sur 2010–2024, 40 colonnes</div>
 <br/>
-<div class="metric-big">9.48M</div>
-<div class="muted">Focus 2022 (volumetrie exploitable)</div>
+<div class="metric-big">9,48M</div>
+<div class="muted">Focus 2022 (volume exploitable)</div>
 <br/>
-<div class="metric-big">533k</div>
-<div class="muted">Doublons stricts supprimes</div>
+<div class="metric-big">Ewltp ≈ 1% NA</div>
+<div class="muted">Enedc ≈ 82% NA → cible WLTP priorisée</div>
 </div>
 """,
-            unsafe_allow_html=True,
-        )
-    st.markdown(
-        "<div class='muted'>Source: Rendu 1. Le focus 2022 combine volume et meilleure couverture WLTP.</div>",
         unsafe_allow_html=True,
     )
 
 
-elif slide_key == "2 - Qualite & couverture":
-    section_header("Qualite des donnees", "WLTP vs NEDC")
-    col_a, col_b = st.columns([1.1, 1])
+elif slide_id == "preprocess":
+    section_header("Pré-processing & sélection", "Split avant traitement pour éviter toute fuite")
+    col_a, col_b = st.columns([1.2, 1])
     with col_a:
-        st.plotly_chart(chart_missingness(), use_container_width=True)
-    with col_b:
         st.markdown(
             """
 <div class="card">
-<div class="metric-big">>80%</div>
-<div class="muted">De valeurs manquantes sur Enedc (ancienne norme)</div>
-<br/>
-<div class="metric-big">&lt;1%</div>
-<div class="muted">De valeurs manquantes sur Ewltp (norme actuelle)</div>
-<br/>
-<div class="muted">Decision: prioriser Ewltp pour la cible.</div>
+<div class="metric-big">Méthodologie</div>
+<div class="muted">
+<ul>
+  <li>Split train/test avant tout traitement.</li>
+  <li>Traitement séparé numériques vs qualitatives.</li>
+  <li>Exclusion des colonnes trop corrélées à la cible (risque de fuite).</li>
+</ul>
+</div>
 </div>
 """,
             unsafe_allow_html=True,
         )
-    st.markdown(
-        "<div class='muted'>La couverture WLTP rend la prediction plus robuste et interpretable.</div>",
-        unsafe_allow_html=True,
-    )
-
-
-elif slide_key == "3 - Choix metodologiques":
-    section_header("Choix cles", "Eviter les fuites et stabiliser la base")
-    col_a, col_b = st.columns([1.1, 1])
-    with col_a:
-        st.plotly_chart(chart_column_split(), use_container_width=True)
+        num_col, cat_col = st.columns(2)
+        with num_col:
+            st.markdown(
+                "<div class='card'><div class='metric-big'>Numériques</div>"
+                + "<div class='muted'>" + "<br/>".join(PREPROCESS_NUMERIC) + "</div></div>",
+                unsafe_allow_html=True,
+            )
+        with cat_col:
+            st.markdown(
+                "<div class='card'><div class='metric-big'>Qualitatives</div>"
+                + "<div class='muted'>" + "<br/>".join(PREPROCESS_CATEGORICAL) + "</div></div>",
+                unsafe_allow_html=True,
+            )
+        with st.expander("Dictionnaire de données (extrait)"):
+            df_dict = load_data_dictionary()
+            df_drop = df_dict[df_dict["drop_reason"].notna()].copy()
+            df_drop = df_drop.rename(columns={"column": "column", "drop_reason": "reason"})
+            st.dataframe(df_drop.head(15), use_container_width=True, height=300)
     with col_b:
         st.markdown(
             """
 <div class="card">
-<div class="metric-big">Pre-split</div>
-<div class="muted">Split train/test AVANT le preprocessing pour eviter les fuites.</div>
-<br/>
-<div class="metric-big">Selection</div>
-<div class="muted">19 colonnes retirees (admin, obsolete, forte NA).</div>
-<br/>
-<div class="metric-big">Structure</div>
-<div class="muted">Focus sur les variables physiques/energetiques.</div>
+<div class="metric-big">Colonnes structurelles conservées</div>
+<div class="muted">Uniquement les variables disponibles avant la construction du véhicule.</div>
 </div>
 """,
             unsafe_allow_html=True,
         )
+        st.code("\n".join(STRUCTURAL_COLUMNS))
+        st.markdown("<div class='muted'>At1 supprimée, At2 conservée.</div>", unsafe_allow_html=True)
+        show_image(STRUCTURE_IMAGE, "Synthèse des colonnes structurelles")
+        st.markdown(
+            "<div class='card'><div class='metric-big'>Colonnes exclues (fuite)</div>"
+            + "<div class='muted'>" + "<br/>".join(EXCLUDED_COLUMNS) + "</div></div>",
+            unsafe_allow_html=True,
+        )
 
-    with st.expander("Voir le dictionnaire de donnees (extrait)"):
-        df_dict = load_data_dictionary()
-        df_drop = df_dict[df_dict["drop_reason"].notna()].copy()
-        df_drop = df_drop.rename(columns={"column": "column", "drop_reason": "reason"})
-        st.dataframe(df_drop.head(15), use_container_width=True, height=300)
 
-
-elif slide_key == "4 - Regression (Rendu 2)":
-    section_header("Regression", "Predire une valeur continue CO2 (g/km)")
+elif slide_id == "regression":
+    section_header("Régression", "Comparaison des modèles testés (CO2 en g/km)")
     col_a, col_b = st.columns(2)
     with col_a:
         st.plotly_chart(chart_regression(), use_container_width=True)
     with col_b:
         st.plotly_chart(chart_regression_rmse(), use_container_width=True)
-
     st.markdown(
         """
 <div class="card">
 <div class="metric-big">Random Forest</div>
-<div class="muted">R2 test ~0.994, RMSE ~5.41 g/km. Performance elevee grace aux variables structurelles.</div>
+<div class="muted">Meilleure performance globale, RMSE ~5–6 g/km.</div>
 </div>
 """,
         unsafe_allow_html=True,
     )
+    st.dataframe(REG_RESULTS_FULL, use_container_width=True, height=280)
+    with st.expander("Résultats sur données réduites (variables structurelles uniquement)"):
+        st.dataframe(REG_RESULTS_REDUCED, use_container_width=True, height=260)
 
 
-elif slide_key == "5 - Classification & seuils":
-    section_header("Classification", "8 classes de 0 a 7 (directive 1999/94/EC)")
-    col_a, col_b = st.columns([1.1, 1])
-    with col_a:
-        st.plotly_chart(chart_thresholds(), use_container_width=True)
-    with col_b:
+elif slide_id == "classification":
+    section_header("Classification & optimisation", "Classes 0–7 et optimisation XGBoost")
+    tabs = st.tabs(["Catégorisation", "Comparatif modèles", "XGBoost + Optuna"])
+    with tabs[0]:
+        col_a, col_b = st.columns([1.1, 1])
+        with col_a:
+            st.plotly_chart(chart_thresholds(), use_container_width=True)
+        with col_b:
+            df_bins = pd.DataFrame(CLASS_BINS)
+            df_bins["Seuil (g/km)"] = df_bins.apply(
+                lambda row: "0" if row["class"] == "0" else f"{row['min']}–{row['max']}",
+                axis=1,
+            )
+            df_bins = df_bins.rename(
+                columns={
+                    "class": "Classe",
+                    "label": "Libellé",
+                    "example": "Exemple",
+                }
+            )[["Classe", "Libellé", "Seuil (g/km)", "Exemple"]]
+            st.dataframe(df_bins, use_container_width=True, height=320)
         st.markdown(
-            """
-<div class="card">
-<div class="metric-big">Classe 0</div>
-<div class="muted">Zero emission (EV)</div>
-<br/>
-<div class="metric-big">Classes 1-7</div>
-<div class="muted">A a G selon les seuils WLTP</div>
-<br/>
-<div class="muted">Objectif: sortie interpretable metier.</div>
-</div>
-""",
+            "<div class='muted'>Ajout d'une classe 0 pour les véhicules 100% électriques.</div>",
+            unsafe_allow_html=True,
+        )
+    with tabs[1]:
+        st.plotly_chart(chart_classification(), use_container_width=True)
+        st.markdown(
+            "<div class='muted'>Les meilleurs modèles se concentrent sur des erreurs entre classes adjacentes.</div>",
+            unsafe_allow_html=True,
+        )
+    with tabs[2]:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.plotly_chart(chart_xgb_scores(), use_container_width=True)
+        with col_b:
+            st.plotly_chart(chart_confusion_matrix(), use_container_width=True)
+        st.markdown(
+            "<div class='muted'>Matrice de confusion après optimisation des seuils.</div>",
             unsafe_allow_html=True,
         )
 
 
-elif slide_key == "6 - XGBoost & Optuna":
-    section_header("Selection du modele", "F1 pondere comme metrique principale")
-    st.plotly_chart(chart_classification(), use_container_width=True)
+elif slide_id == "shap":
+    section_header("Explicabilité (SHAP)", "Lecture globale et locale du modèle")
+    cols = st.columns(2)
+    for idx, panel in enumerate(SHAP_PANELS):
+        with cols[idx % 2]:
+            show_image(panel["path"], panel["title"])
+            st.markdown(f"<div class='muted'>{panel['desc']}</div>", unsafe_allow_html=True)
     st.markdown(
         """
 <div class="card">
-<div class="metric-big">F1 test ~0.930</div>
-<div class="muted">XGBoost optimise (Optuna) = meilleur compromis performance / robustesse.</div>
-<br/>
-<div class="muted">Les erreurs se concentrent entre classes adjacentes (2↔3, 4↔5).</div>
-</div>
-""",
-        unsafe_allow_html=True,
-    )
-
-
-elif slide_key == "7 - Explicabilite (SHAP)":
-    section_header("Explicabilite", "SHAP confirme la logique metier")
-    tabs = st.tabs(["Importance gain", "Importance permutation"])
-    with tabs[0]:
-        st.plotly_chart(
-            chart_importance(GAIN_IMPORTANCE, "Gain importance (XGBoost)"),
-            use_container_width=True,
-        )
-    with tabs[1]:
-        st.plotly_chart(
-            chart_importance(PERM_IMPORTANCE, "Permutation importance (F1 weighted)"),
-            use_container_width=True,
-        )
-    st.markdown(
-        """
-<div class="card">
-<div class="metric-big">Lecture cle</div>
+<div class="metric-big">Lecture clé</div>
 <div class="muted">
-Carburant segmente les classes, puis les variables physiques (masse, cylindree, puissance)
-affinent la decision. Les classes extremes sont quasi parfaites.
+Le carburant segmente les classes, puis les variables physiques (masse, cylindrée, puissance)
+affinent la décision. Les classes extrêmes sont quasi parfaites.
 </div>
 </div>
 """,
@@ -661,42 +919,44 @@ affinent la decision. Les classes extremes sont quasi parfaites.
     )
 
 
-elif slide_key == "Demo live":
-    section_header("Demo live", "Predire la classe CO2 (0-7)")
+elif slide_id == "demo":
+    section_header("Démo live", "Prédire la classe CO2 (0–7)")
     st.markdown(
-        "<div class='muted'>Charge un modele pipeline ou utilise le mode demo.</div>",
+        "<div class='muted'>Charge un modèle pipeline ou utilise le mode démo.</div>",
         unsafe_allow_html=True,
     )
 
     col_left, col_right = st.columns([1.1, 1])
     with col_left:
         with st.form("demo_form"):
-            mass_kg = st.number_input("Mass (kg)", 600, 4000, 1500, step=10)
-            power_kw = st.number_input("Power (kW)", 40, 500, 110, step=5)
-            disp_cm3 = st.number_input("Displacement (cm3)", 800, 6000, 1600, step=50)
-            width_mm = st.number_input("Width (mm)", 1500, 2300, 1800, step=10)
-            track_front_mm = st.number_input("Track front (mm)", 1200, 2000, 1550, step=10)
-            track_rear_mm = st.number_input("Track rear (mm)", 1200, 2000, 1550, step=10)
-            year = st.number_input("Model year", 2010, 2025, 2022, step=1)
+            mass_kg = st.number_input("Masse (kg)", 600, 4000, 1500, step=10)
+            cyl_cm3 = st.number_input("cylindre_du_moteur_cm3", 800, 6000, 1600, step=50)
+            power_kw = st.number_input("puissance_du_moteur_kw", 40, 500, 110, step=5)
+            width_mm = st.number_input("W (mm)", 1500, 2300, 1800, step=10)
+            at1_mm = st.number_input("At1 (mm)", 1200, 2000, 1550, step=10)
+            at2_mm = st.number_input("At2 (mm)", 1200, 2000, 1550, step=10)
+            it_flag = st.selectbox("IT (0/1)", [0, 1])
+            year = st.number_input("Année", 2010, 2025, 2022, step=1)
             fuel_type = st.selectbox(
-                "Fuel type (Ft)",
+                "Ft (carburant)",
                 ["PETROL", "DIESEL", "HEV", "PHEV", "EV", "OTHER"],
             )
-            uploaded = st.file_uploader("Optional: upload model pipeline (.joblib/.pkl)")
-            use_demo = st.checkbox("Use demo mode (heuristic)", value=True)
-            submitted = st.form_submit_button("Predict class")
+            uploaded = st.file_uploader("Optionnel : charger un pipeline (.joblib/.pkl)")
+            use_demo = st.checkbox("Utiliser le mode démo (heuristique)", value=True)
+            submitted = st.form_submit_button("Prédire la classe")
 
     with col_right:
         if submitted:
             payload = {
-                "mass_kg": mass_kg,
-                "power_kw": power_kw,
-                "disp_cm3": disp_cm3,
-                "width_mm": width_mm,
-                "track_front_mm": track_front_mm,
-                "track_rear_mm": track_rear_mm,
+                "m (kg)": mass_kg,
+                "cylindre_du_moteur_cm3": cyl_cm3,
+                "puissance_du_moteur_kw": power_kw,
+                "W (mm)": width_mm,
+                "At1 (mm)": at1_mm,
+                "At2 (mm)": at2_mm,
+                "IT": it_flag,
                 "year": year,
-                "fuel_type": fuel_type,
+                "Ft": fuel_type,
             }
 
             model, model_src = load_model(uploaded)
@@ -715,22 +975,22 @@ elif slide_key == "Demo live":
                 pred_co2 = heuristic_co2_estimate(payload)
                 pred_class = classify_co2(pred_co2)
 
-            class_map = {c: label for c, label, _ in CLASS_THRESHOLDS}
-            label = class_map.get(pred_class, "Unknown")
+            class_map = {row["class"]: row["label"] for row in CLASS_BINS}
+            label = class_map.get(pred_class, "Inconnu")
 
             st.markdown(
                 """
 <div class="card">
-<div class="metric-big">Prediction</div>
+<div class="metric-big">Prédiction</div>
 <div class="muted">Classe CO2</div>
 </div>
 """,
                 unsafe_allow_html=True,
             )
-            st.metric("Class", f"{pred_class} ({label})")
+            st.metric("Classe", f"{pred_class} ({label})")
             if pred_co2 is not None:
-                st.metric("Estimated CO2 (demo)", f"{pred_co2:.1f} g/km")
+                st.metric("CO2 estimé (démo)", f"{pred_co2:.1f} g/km")
             if model_src:
-                st.caption(f"Model source: {model_src}")
+                st.caption(f"Modèle : {model_src}")
             else:
-                st.caption("No model file found. Demo mode used.")
+                st.caption("Aucun modèle détecté : mode démo utilisé.")
