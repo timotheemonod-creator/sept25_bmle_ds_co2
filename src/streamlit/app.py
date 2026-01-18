@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from joblib import load as joblib_load
+from src.streamlit.transformers import CardinalityReducer
 
 
 st.set_page_config(
@@ -385,6 +386,7 @@ def heuristic_co2_estimate(payload: dict) -> float:
 def load_model(uploaded: io.BytesIO | None):
     model_paths = [
         Path("models/xgb_pipeline.joblib"),
+        Path("notebooks/models/xgb_pipeline.joblib"),
         Path("models/xgb_classifier.joblib"),
         Path("models/xgb_classifier.pkl"),
     ]
@@ -1125,65 +1127,112 @@ if slide_id == "demo":
     col_left, col_right = st.columns([1.1, 1])
     with col_left:
         with st.form("demo_form"):
-            mass_kg = st.selectbox("Masse (kg)", list(range(600, 4001, 50)))
-            cyl_cm3 = st.selectbox("cylindre_du_moteur_cm3", list(range(800, 6001, 100)))
-            power_kw = st.selectbox("puissance_du_moteur_kw", list(range(40, 501, 10)))
-            width_mm = st.selectbox("W (mm)", list(range(1500, 2301, 10)))
-            at1_mm = st.selectbox("At1 (mm)", list(range(1200, 2001, 10)))
-            at2_mm = st.selectbox("At2 (mm)", list(range(1200, 2001, 10)))
-            it_flag = st.selectbox("IT (0/1)", [0, 1])
+            st.markdown("**Caractéristiques du véhicule**")
+            
+            # Caractéristiques principales (celles du formulaire actuel)
+            mass_kg = st.selectbox("Masse (kg)", list(range(600, 4001, 50)), index=18)
+            cyl_cm3 = st.selectbox("Cylindrée (cm³)", list(range(0, 6001, 100)), index=12)
+            power_kw = st.selectbox("Puissance (kW)", list(range(0, 501, 10)), index=4)
+            width_mm = st.selectbox("Largeur W (mm)", list(range(1500, 2301, 10)), index=0)
+            at1_mm = st.selectbox("Voie avant At1 (mm)", list(range(1200, 2001, 10)), index=0)
+            at2_mm = st.selectbox("Voie arrière At2 (mm)", list(range(1200, 2001, 10)), index=0)
+            
             fuel_type = st.selectbox(
-                "Ft (carburant)",
+                "Type de carburant",
                 ["PETROL", "DIESEL", "HYBRIDE", "HYBRIDE RECHARGEABLE", "ELECTRIQUE", "AUTRE"],
+                index=0
             )
+            
+            # Paramètres optionnels avancés
+            with st.expander("⚙️ Paramètres avancés (optionnel)", expanded=False):
+                country = st.selectbox("Pays", ["FR", "DE", "IT", "ES", "UK", "OTHER"], index=0)
+                manufacturer = st.text_input("Constructeur", value="OTHER")
+                it_flag = st.selectbox("Innovation technologique (IT)", [0, 1], index=0)
+            
             submitted = st.form_submit_button("Prédire la classe")
 
     with col_right:
         if submitted:
+            # Créer le payload avec TOUTES les 21 colonnes attendues
             payload = {
+                # Colonnes du formulaire
                 "m (kg)": mass_kg,
-                "cylindre_du_moteur_cm3": cyl_cm3,
-                "puissance_du_moteur_kw": power_kw,
+                "ec (cm3)": cyl_cm3,           # cylindrée
+                "ep (KW)": power_kw,           # puissance
                 "W (mm)": width_mm,
                 "At1 (mm)": at1_mm,
                 "At2 (mm)": at2_mm,
-                "IT": it_flag,
                 "Ft": fuel_type,
+                "IT": it_flag,
+                
+                # Colonnes catégorielles avec valeurs par défaut
+                "Country": country if 'country' in locals() else "FR",
+                "Man": manufacturer if 'manufacturer' in locals() else "OTHER",
+                "Va": "OTHER",                 # Variant
+                "Ve": "OTHER",                 # Version
+                "Mk": "OTHER",                 # Make
+                "Cn": "OTHER",                 # Commercial name
+                "Cr": "M1",                    # Category regulatory (voiture particulière)
+                "Fm": "M",                     # Fuel mode (M = manuel par défaut)
+                
+                # Colonnes numériques avec valeurs par défaut
+                "z (Wh/km)": 0 if fuel_type != "ELECTRIQUE" else 150,
+                "Erwltp (g/km)": 0,            # Sera ignoré par le modèle
+                "Fuel consumption": 0,          # Sera ignoré
+                "Electric range (km)": 0 if fuel_type != "ELECTRIQUE" else 300,
+                "id_raw": 0,                   # ID fictif
             }
 
-            model, model_src = load_model(ASSET_DIR / "xgb_classifier.joblib")
-            pred_class = None
-            pred_co2 = None
-
+            st.write("🔍 Debug - Payload:", payload)
             
-            df_in = pd.DataFrame([payload])
-            try:
-                pred = model.predict(df_in)
-                pred_class = str(pred[0])
-            except Exception:
-                pred_class = None
-
-            if pred_class is None:
+            model, model_src = load_model(None)
+            
+            st.write("🔍 Debug - Model loaded:", model is not None)
+            st.write("🔍 Debug - Model source:", model_src)
+            
+            if model is not None:
+                df_in = pd.DataFrame([payload])
+                st.write("🔍 Debug - DataFrame shape:", df_in.shape)
+                st.write("🔍 Debug - Colonnes DataFrame:", list(df_in.columns))
+                
+                try:
+                    pred = model.predict(df_in)
+                    pred_class = str(pred[0])
+                    pred_co2 = None
+                    
+                    st.success(f"✅ Modèle XGBoost chargé : {model_src}")
+                    st.info(f"🎯 Prédiction effectuée avec le vrai modèle ML")
+                except Exception as e:
+                    st.error(f"❌ Erreur de prédiction : {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+                    
+                    # Fallback
+                    pred_co2 = heuristic_co2_estimate(payload)
+                    pred_class = classify_co2(pred_co2)
+            else:
+                st.warning("⚠️ Utilisation du modèle heuristique (démo)")
                 pred_co2 = heuristic_co2_estimate(payload)
                 pred_class = classify_co2(pred_co2)
 
+            # Affichage des résultats
             class_map = {row["class"]: row["label"] for row in CLASS_BINS}
             label = class_map.get(pred_class, "Inconnu")
 
             st.markdown(
                 """
-        <div class="card">
-        <div class="metric-big">Prédiction</div>
-        <div class="muted">Classe CO2</div>
-        </div>
-        """,
+                <div class="card">
+                <div class="metric-big">Prédiction</div>
+                <div class="muted">Classe CO2</div>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
             st.metric("Classe", f"{pred_class} ({label})")
             if pred_co2 is not None:
-                st.metric("CO2 estimé (démo)", f"{pred_co2:.1f} g/km")
-            
-            st.caption(f"Modèle : XGBoost")
+                st.metric("CO2 estimé (heuristique)", f"{pred_co2:.1f} g/km")
+            else:
+                st.caption("✨ Prédiction par modèle XGBoost entraîné")
            
 
 
