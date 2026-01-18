@@ -1067,11 +1067,11 @@ if slide_id == "classification":
 
         with col_a:
             st.markdown("**Matrice de confusion avant optimisation**")
-            st.image("assets/cm_before_blues.png", use_container_width=True)
+st.image("assets/cm_before_Blues.png", use_container_width=True)
 
         with col_b:
             st.markdown("**Matrice de confusion après optimisation**")
-            st.image("assets/cm_after_blues.png", use_container_width=True)
+st.image("assets/cm_after_Blues.png", use_container_width=True)
 
 
 if slide_id == "shap":
