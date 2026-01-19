@@ -1128,7 +1128,7 @@ if slide_id == "demo":
             mass_kg = st.selectbox("Masse (kg)", list(range(600, 4001, 50)))
             cyl_cm3 = st.selectbox("cylindre_du_moteur_cm3", list(range(800, 6001, 100)))
             power_kw = st.selectbox("puissance_du_moteur_kw", list(range(40, 501, 10)))
-            width_mm = st.selectbox("W (mm)", list(range(1500, 2301, 10)))
+            width_mm = st.selectbox("W (mm)", list(range(1500, 4001, 10)))
             at1_mm = st.selectbox("At1 (mm)", list(range(1200, 2001, 10)))
             at2_mm = st.selectbox("At2 (mm)", list(range(1200, 2001, 10)))
             it_flag = st.selectbox("IT (0/1)", [0, 1])
